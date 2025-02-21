@@ -2,26 +2,40 @@ package main
 
 import (
 	"errors"
-	"fmt"
+	"sync"
 )
 
 func main() {
 	//mat := [][]int{{1, 2, 3, 4, 5}, {1, 2, 3, 4, 4}, {1, 2, 2, 3, 4}, {2, 3, 4, 5, 6}, {5, 1, 2, 3, 4}}
-	mat1 := [][]int{{1, 2, 4}, {2, 2, 4}, {5, 2, 6}}
-	fmt.Println(mat1)
+	// mat1 := [][]int{{1, 2, 4}, {2, 2, 4}, {5, 2, 6}}
+	// fmt.Println(mat1)
 
-	fmt.Println(laplas(mat1))
-	fmt.Println(power(-1, 2))
-	fmt.Println(trace(mat1))
-	fmt.Println(transposition(mat1))
+	// fmt.Println(laplas(mat1))
+	// fmt.Println(power(-1, 2))
+	// fmt.Println(trace(mat1))
+	// fmt.Println(transposition(mat1))
 	//fmt.Println(power(-2, 3))
+	// var int_ch chan int = make(chan int)
+	// go func() {
+	// 	defer close(int_ch)
+	// 	//int_ch <- 52
+	// }()
+	// fmt.Println(<-int_ch)
+
 }
 
 func power(a, b int) int {
+	var wg sync.WaitGroup
+
 	c := a
 	for i := 0; i < b-1; i++ {
-		c *= a
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			c *= a
+		}()
 	}
+	wg.Wait()
 	return c
 }
 
@@ -53,6 +67,8 @@ func minor(mat [][]int, i int, j int) ([][]int, error) {
 }
 
 func laplas(mat [][]int) (int, error) {
+	var wg sync.WaitGroup
+
 	if len(mat) == 1 {
 		return mat[0][0], nil
 	}
@@ -65,24 +81,44 @@ func laplas(mat [][]int) (int, error) {
 		if err != nil {
 			return 0, err
 		}
-		lp, err := laplas(ad)
-		deter += mat[0][index] * power(-1, 2+index) * lp
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			var lp int
+			lp, err = laplas(ad)
+			deter += mat[0][index] * power(-1, 2+index) * lp
+		}()
 	}
+
+	wg.Wait()
 	return deter, nil
 }
 
 func trace(mat [][]int) (int, error) {
+	var wg sync.WaitGroup
 	tmp := 0
 	for i := 0; i < len(mat); i++ {
 		if len(mat) != len(mat[i]) {
 			return 0, errors.New("Matrix isn't square")
 		}
-		for j := 0; j < len(mat[i]); j++ {
-			if i == j {
-				tmp += mat[i][j]
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < len(mat[i]); j++ {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					if i == j {
+						tmp += mat[i][j]
+					}
+				}()
 			}
-		}
+		}()
 	}
+
+	wg.Wait()
 	return tmp, nil
 }
 
